@@ -1,4 +1,6 @@
 import json
+import os
+import pathlib
 from datetime import datetime
 
 from django.contrib.auth.password_validation import validate_password
@@ -7,6 +9,8 @@ from django.db import transaction
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
 
@@ -38,7 +42,7 @@ def user_registration(request):
     try:
         new_user = User.objects.create_user(username, email, password)
 
-    except ValidationError:
+    except:
         raise ValidationError("This email is already in use")
 
     new_user.first_name = first_name
@@ -48,3 +52,22 @@ def user_registration(request):
 
     return HttpResponse(json.dumps({"result": "SUCCESS"}), content_type="application/json")
 
+
+@api_view(['GET'])
+def list_artworks(request):
+    current_dir = os.getcwd()
+    desktop = pathlib.Path(current_dir + "/nft-files")
+    file_paths = list(desktop.iterdir())
+    file_names = []
+    for file_path in file_paths:
+        file_names.append(pathlib.Path(file_path).stem)
+    return Response(file_names)
+
+
+@api_view(['GET'])
+def artwork_detail(request):
+    file_name = request.query_params.get('file_name')
+    with open("nft-files/" + file_name + ".json") as f:
+       file_detail = json.load(f)
+
+    return Response(file_detail)
